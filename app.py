@@ -1,28 +1,24 @@
 from flask import Flask, request, abort, send_from_directory, make_response
 import os, shutil, tempfile
+import sbol2excel.converter as conv
+import sys
+import traceback
 
 app = Flask(__name__)
 
 @app.route("/status")
 def status():
-    return("The Download Test Plugin Flask Server is up and running")
+    return("The SBOL2Excel Download Plug-In is currently running.")
 
 @app.route("/evaluate", methods=["POST"])
 def evaluate():
     data = request.get_json(force=True)
     rdf_type = data['type']
+
     
     ########## REPLACE THIS SECTION WITH OWN RUN CODE #################
     #uses rdf types
-    accepted_types = {'Activity', 'Agent', 'Association', 'Attachment', 'Collection',
-                      'CombinatorialDerivation', 'Component', 'ComponentDefinition',
-                      'Cut', 'Experiment', 'ExperimentalData',
-                      'FunctionalComponent','GenericLocation',
-                      'Implementation', 'Interaction', 'Location',
-                      'MapsTo', 'Measure', 'Model', 'Module', 'ModuleDefinition'
-                      'Participation', 'Plan', 'Range', 'Sequence',
-                      'SequenceAnnotation', 'SequenceConstraint',
-                      'Usage', 'VariableComponent'}
+    accepted_types = {'Collection'}
     
     acceptable = rdf_type in accepted_types
     
@@ -59,25 +55,11 @@ def run():
     try:
         ########## REPLACE THIS SECTION WITH OWN RUN CODE #################
         #read in test.html
-        file_in_name = os.path.join(cwd, "Test.html")
-        with open(file_in_name, 'r') as htmlfile:
-            result = htmlfile.read()
-            
-        #put in the url, uri, and instance given by synbiohub
-        result = result.replace("URL_REPLACE", url)
-        result = result.replace("URI_REPLACE", top_level_url)
-        result = result.replace("INSTANCE_REPLACE", instance_url)
-        result = result.replace("REQUEST_REPLACE", str(data))
-        
-        
-        #write out file to temporary directory
-        out_name = "Out.html"
+        out_name = "Out.xlsx"
         file_out_name = os.path.join(temp_dir.name, out_name)
-        with open(file_out_name, 'w') as out_file:
-            out_file.write(result)
-        
-        #this file could be a zip archive or any path and file name relative to temp_dir
-        download_file_name = out_name
+        conv.converter(complete_sbol, file_out_name)
+        download_file_name = file_out_name
+        print(download_file_name)
         ################## END SECTION ####################################
 
         return  send_from_directory(temp_dir.name,download_file_name, 
@@ -85,5 +67,7 @@ def run():
 
         
     except Exception as e:
-        print(e)
-        abort(400)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        lnum = exc_tb.tb_lineno
+        abort(415, f'Exception is: {e}, exc_type: {exc_type}, exc_obj: {exc_obj}, fname: {fname}, line_number: {lnum}, traceback: {traceback.format_exc()}')
