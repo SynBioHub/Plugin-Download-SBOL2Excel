@@ -1,2 +1,2 @@
 Flask==2.0.1
-sbol2excel==1.0.0a22
+sbol2excel==1.0.0a23
